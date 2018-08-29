@@ -1,60 +1,57 @@
-'use strict';
+// MongoDB module for establishing connections 
 var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/info";
-var collection = "States"
-var param;
-var sortBy;
+// path to file for database connection
+var mongodb = require('./db/db_connection.js');
+// readline module for reading user input 
+var readline = require('readline');
 
-for (let i = 0; i < process.argv.length; i++) {  
-	if (i == 2){
-		param = process.argv[2];
+// use readline to allow the user to input text 
+var rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout
+});
+// message shown to user. Input variable is whatever the user has entered
+rl.question('How would you like to sort the data? \n Enter 1 to sort by state \n Enter 2 to sort by statecode \n' 
++ ' Enter 3 to sort by capital \n => ', (input) => {
+	// variable that will determine how data is sorted based on user's input 
+	var sortBy = {};
+	// depending on the number input sort is set to a different value 
+	if(parseInt(input) == 1){
+		sortBy['state'] = 1;
 	}
-  }
-  
-  if (param !== undefined){
-      if(param == 'state'){
-	      sortBy = 'state';
-	  }
-	  else if(param == 'capital'){
-	      sortBy = 'capital';
-      }
-      else if(param == 'statecode' || param == 'code' ){
-	      sortBy = 'statecode';
-      }
-      else{
-	      console.log('unrecognized parameter');
-	      process.exit();
-      }
-  }
-  else{
-	  sortBy = 'state';
-  }
- 
-  MongoClient.connect(url, function(err, db) {
-	  if (err) throw err;
+	else if(parseInt(input) == 2){
+		sortBy['statecode'] = 1;
+	}
+	else if(parseInt(input) == 3){
+		sortBy['capital'] = 1;
+	}
+	// if anything else is input then terminate program
+	else{
+		console.log('unrecognized input');
+		process.exit();
+	 }
 
-	  if (sortBy == 'state'){
-		  db.collection(collection).find({}, {'state': 1, 'capital': 1, 'statecode': 1, '_id': 0} ).sort({ 'state': 1 }).toArray(function(err, result) {
-			  if (err) throw err;
-			  console.log(result);
-		      db.close();
-			  }); 
-		  }
-	  else if (sortBy == 'capital'){
-		  db.collection(collection).find({}, {'state': 1, 'capital': 1, 'statecode': 1, '_id': 0} ).sort({ 'capital': 1 }).toArray(function(err, result) {
-			  if (err) throw err;
-			  console.log(result);
-		      db.close();
-		      }); 
-	      }
-	  else if (sortBy == 'statecode'){
-		  db.collection(collection).find({}, {'state': 1, 'capital': 1, 'statecode': 1, '_id': 0} ).sort({ 'statecode': 1 }).toArray(function(err, result) {
-			   if (err) throw err;
-			   console.log(result);
-               db.close();
-               }); 
-          }
+	// connect to MongoDB using the url provided in db_connection.js 
+	MongoClient.connect(mongodb.url, { useNewUrlParser: true }, function(error, client) {
+	     // in case of any errors with the connection
+	     if (error) throw error;
+		 // variable to store the database provided in db_connection.js 
+	     var db = client.db(mongodb.db_name);
+		 // return all data from the collection provided in db_connection.js. Exclude '_id' column and sort the results using the value of sortBy 
+	     db.collection(mongodb.collection).find({}, { projection: {'_id': 0}} ).sort( sortBy ).toArray(function(error, result) {
+		     if (error) throw error;
+			 // show the results 
+		     console.log(result);
+			 // close database connection
+		     client.close();
+	     }); 
     }); 
+	 // close readline 
+	 rl.close();
+});
+  
+ 
+ 
   
 
   

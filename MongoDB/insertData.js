@@ -1,64 +1,53 @@
+// lineReaser module for reading each line of file
+var lineReader = require('line-reader');
+// bluebird module used for creating a promise when reading file 
+var promise = require('bluebird');
+// function that uses promise and lineReader for reading file 
+var eachLine = promise.promisify(lineReader.eachLine);
+// MongoDB module for establishing connections 
 var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/info";
-var collection = "States"
+// path to file for database connection
+var mongodb = require('./db/db_connection.js');
+// path to file where data is stored
+var file = '../Files/states.txt';
+// variable to keep track of what line in the file we are on 
+var lineNo = 0;
+// array to store data retrieved from file 
+var stateInfo = [];
 
-MongoClient.connect(url, function(err, db) {
-  if (err) throw err;
-  var stateInfo = [
-    {"state" : "Alabama", "statecode" : "AL", "capital" : "Montgomery"},
-	{"state" : "Alaska", "statecode" : "AK", "capital" : "Juneau"},
-	{"state" : "Arizona", "statecode" : "AZ", "capital" : "Phoenix"},
-	{"state" : "Arkansas", "statecode" : "AR", "capital" : "Little Rock"},
-	{"state" : "California", "statecode" : "CA", "capital" : "Sacramento"},
-	{"state" : "Colorado", "statecode" : "CO", "capital" : "Denver"},
-	{"state" : "Connecticut", "statecode" : "CT", "capital" : "Hartford"},
-	{"state" : "Delaware", "statecode" : "DE", "capital" : "Dover"},
-	{"state" : "Florida", "statecode" : "FL", "capital" : "Tallahassee"},
-	{"state" : "Georgia", "statecode" : "GA", "capital" : "Atlanta"},
-	{"state" : "Hawaii", "statecode" : "HI", "capital" : "Honolulu"},
-	{"state" : "Idaho", "statecode" : "ID", "capital" : "Boise"},
-	{"state" : "Illinois", "statecode" : "IL", "capital" : "Springfield"},
-	{"state" : "Indianna", "statecode" : "IN", "capital" : "Indianapolis"},
-	{"state" : "Iowa", "statecode" : "IA", "capital" : "Des Moines"},
-	{"state" : "Kansas", "statecode" : "KS", "capital" : "Topeka"},
-	{"state" : "Kentucky", "statecode" : "KY", "capital" : "Frankfort"},
-	{"state" : "Louisiana", "statecode" : "LA", "capital" : "Baton Rouge"},
-	{"state" : "Maine", "statecode" : "ME", "capital" : "Augusta"},
-	{"state" : "Maryland", "statecode" : "MD", "capital" : "Annapolis"},
-	{"state" : "Massachusetts", "statecode" : "MA", "capital" : "Boston"},
-	{"state" : "Michigan", "statecode" : "MI", "capital" : "Lansing"},
-	{"state" : "Minnesota", "statecode" : "MN", "capital" : "Saint Paul"},
-	{"state" : "Mississippi", "statecode" : "MS", "capital" : "Jackson"},
-	{"state" : "Missouri", "statecode" : "MO", "capital" : "Jefferson City"},
-	{"state" : "Montana", "statecode" : "MT", "capital" : "Helena"},
-	{"state" : "Nebraska", "statecode" : "NE", "capital" : "Lincoln"},
-	{"state" : "Nevada", "statecode" : "NV", "capital" : "Carson City"},
-	{"state" : "New Hampshire", "statecode" : "NH", "capital" : "Concord"},
-	{"state" : "New Jersey", "statecode" : "NJ", "capital" : "Trenton"},
-	{"state" : "New Mexico", "statecode" : "NM", "capital" : "Santa Fre"},
-	{"state" : "New York", "statecode" : "NY", "capital" : "Albany"},
-	{"state" : "North Carolina", "statecode" : "NC", "capital" : "Raleigh"},
-	{"state" : "North Dakota", "statecode" : "ND", "capital" : "Bismarck"},
-	{"state" : "Ohio", "statecode" : "OH", "capital" : "Columbus"},
-	{"state" : "Oklahoma", "statecode" : "OK", "capital" : "Oklahoma City"},
-	{"state" : "Oregon", "statecode" : "OR", "capital" : "Salem"},
-	{"state" : "Pennsylvania", "statecode" : "PA", "capital" : "Harrisburg"},
-	{"state" : "Rhode Island", "statecode" : "RI", "capital" : "Providence"},
-	{"state" : "South Carolina", "statecode" : "SC", "capital" : "Columbia"},
-	{"state" : "South Dakota", "statecode" : "SD", "capital" : "Pierre"},
-	{"state" : "Tennessee", "statecode" : "TN", "capital" : "Nashville"},
-	{"state" : "Texas", "statecode" : "TX", "capital" : "Austin"},
-	{"state" : "Utah", "statecode" : "UT", "capital" : "Salt Lake City"},
-	{"state" : "Vermont", "statecode" : "VY", "capital" : "Montpelier"},
-	{"state" : "Virginia", "statecode" : "VA", "capital" : "Richmond"},
-	{"state" : "Washington", "statecode" : "WA", "capital" : "Olympia"},
-	{"state" : "West Virginia", "statecode" : "WV", "capital" : "Charleston"},
-	{"state" : "Wisconsin", "statecode" : "WI", "capital" : "Madison"},
-	{"state" : "Wyoming", "statecode" : "WY", "capital" : "Cheyenne"}
-  ];
-  db.collection(collection).insertMany(stateInfo, function(err, res) {
-	  if (err) throw err;
-	  console.log("Number of records inserted: " + res.insertedCount);
-      db.close();
-  });
-}); 
+// call eachLine function to read each line of the file 
+eachLine(file, function(line) {
+	// increment for each new line 
+	lineNo++;
+	// this stops it from reading the header
+	if(lineNo > 1){
+		// split the line into three segments using comma
+		var output = line.split(',');
+		// to prevent any errors - check the length is sufficient
+		if(output.length >= 3){
+			// add data to array
+			stateInfo.push({"state" : output[0], "statecode" : output[1], "capital" : output[2] });	
+		}
+	} 
+// called only once the file has finished being read
+}).then(function(){
+	// connect to MongoDB using the url provided in db_connection.js 
+	MongoClient.connect(mongodb.url, { useNewUrlParser: true }, function(error, client) {
+		// in case of any errors with the connection
+		if (error) throw error;  
+		// variable to store the database provided in db_connection.js 
+		var db = client.db(mongodb.db_name);
+		// insert data from the array into the collection provided in db_connection.js 
+		db.collection(mongodb.collection).insertMany(stateInfo, function(error, res) {
+			if (error) throw error;
+			// the number of record added to collection
+			console.log("Number of records inserted: " + res.insertedCount);
+			// close database connection
+			client.close();
+		});
+	}); 
+// if there is an error with the file - display error	
+}).catch(function(error) {
+    console.error(error);
+});
+
