@@ -1,13 +1,9 @@
-// hostname for MySQL
-var host = "localhost";
-// username for MySQL
-var user = "";
-// password for MySQL
-var db_password =  "";
-// name of database
-var db = "";
+var host = "localhost";		// Hostname for MySQL
+var user = "";				// Username for MySQL
+var db_password =  "";		// Password for MySQL
+var db = "";				// Name of database
 
-// export the variables
+// Export the variables
 module.exports.host = host;
 module.exports.user = user;
 module.exports.db_password = db_password;

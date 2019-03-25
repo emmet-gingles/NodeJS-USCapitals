@@ -1,20 +1,24 @@
 // MongoDB module for establishing connections 
 var MongoClient = require('mongodb').MongoClient;
-// path to file for database connection
+// Path to file for database connection
 var mongodb = require('./db/db_connection.js');
 
-// connect to MongoDB using the url provided in db_connection.js 
-MongoClient.connect(mongodb.url, { useNewUrlParser: true }, function(error, client) {
-	// in case of any errors with the connection
+// Connect to MongoDB using the url provided in the connections file
+MongoClient.connect(mongodb.url, function(error, client) {
+	// In case of any errors with the connection
 	if (error) throw error;
-	// variable to store the database provided in db_connection.js 
+	// Variable to store the database name provided in the connections file
 	var db = client.db(mongodb.db_name);
-	// create the collection with the name provided in db_connection.js 
+	// Drop the collection if it already exists
+	db.dropCollection(mongodb.collection, function(error) {
+		if (error) throw error;
+	});
+	// Create the collection 
 	db.createCollection(mongodb.collection, function(error) {
-	if (error) throw error;
-		// show message that collection was created 
+		if (error) throw error;
+		// Show message that collection was created 
 		console.log("Created collection: " + mongodb.collection);
-		// close database connection
+		// Close database connection
 		client.close();
 	});
 });
